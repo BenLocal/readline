@@ -110,7 +110,11 @@ func (k *Keys) readInputFiltered() (keys []byte, err error) {
 	cursor, keys := k.extractCursorPos(buf[:read])
 
 	if len(cursor) > 0 {
-		k.cursor <- cursor
+		select {
+		case k.cursor <- cursor:
+		default:
+			// No query is consuming replies; keyboard input must still proceed.
+		}
 	}
 
 	return keys, nil

@@ -70,7 +70,14 @@ func (e *Engine) Refresh() {
 	atBottom := (e.startRows + e.lineRows) >= termHeight
 
 	if !atBottom {
-		term.MoveCursorDown(1)
+		if e.startRows < 1 {
+			// Without a cursor probe the input may be on the last row. A
+			// newline scrolls in that case, unlike CUD which clamps in place
+			// and would make the following clear erase the input itself.
+			term.WriteString(term.NewlineReturn)
+		} else {
+			term.MoveCursorDown(1)
+		}
 		term.MoveCursorBackwards(term.GetWidth())
 		term.WriteString(term.ClearScreenBelow)
 		term.MoveCursorUp(1)
@@ -223,9 +230,8 @@ func (e *Engine) ensureInputSpace() {
 	// without issuing another cursor-position query.
 	// Reserving space requires the cursor's absolute row, which only the
 	// cursor-position probe provides. When probing is disabled or unavailable
-	// (startRows < 1), we cannot detect the bottom of the window, so we skip
-	// this step -- the documented degraded behavior is that a prompt at the very
-	// bottom may overlap (see disable-cursor-position-probe).
+	// (startRows < 1), skip this step. Input rendering and helper clearing use
+	// newlines to scroll when needed without requiring an absolute row.
 	if e.startRows < 1 {
 		return
 	}

@@ -67,7 +67,9 @@ func WaitAvailableKeys(keys *Keys, cfg *inputrc.Config) {
 
 	keys.mutex.Lock()
 	keys.waiting = true
-	keys.cursor = make(chan []byte)
+	// A reply may arrive before GetCursorPos starts receiving. Keep one
+	// without blocking the keyboard reader on an unsolicited terminal reply.
+	keys.cursor = make(chan []byte, 1)
 	keys.mutex.Unlock()
 
 	defer func() {
